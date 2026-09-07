@@ -211,14 +211,20 @@ input:disabled{opacity:.55;cursor:not-allowed}
   <div class="frow">
     <div><label>날짜</label><input id="lgDate" type="date"></div>
     <div><label>구분</label><select id="lgType" onchange="onType()">
-      <option value="매수">매수 (SGOV → TQQQ)</option>
-      <option value="소익절">소익절 (TQQQ → SPYM)</option>
-      <option value="대익절">대익절 (TQQQ → SPYM)</option>
-      <option value="TS">TS 방어매도 (TQQQ → SPYM)</option>
-      <option value="리밸런싱">리밸런싱 매도 (TQQQ → SPYM)</option>
-      <option value="SPYM매수">SPYM 매수 (SGOV → SPYM)</option>
-      <option value="입금">현금 입금 (→ SGOV)</option>
-      <option value="전량탈출">전량 탈출 (전부 → SGOV)</option>
+      <optgroup label="새 돈 넣기 (적립)">
+        <option value="적립SPYM">SPYM 적립 — 새 돈으로 SPYM 매수</option>
+        <option value="적립TQQQ">TQQQ 적립 — 새 돈으로 TQQQ 매수</option>
+        <option value="입금">현금 적립 — SGOV에 보관</option>
+      </optgroup>
+      <optgroup label="계좌 안에서 옮기기">
+        <option value="매수">매수 (SGOV → TQQQ)</option>
+        <option value="소익절">소익절 (TQQQ → SPYM)</option>
+        <option value="대익절">대익절 (TQQQ → SPYM)</option>
+        <option value="TS">TS 방어매도 (TQQQ → SPYM)</option>
+        <option value="리밸런싱">리밸런싱 매도 (TQQQ → SPYM)</option>
+        <option value="SPYM매수">SPYM 매수 (SGOV → SPYM)</option>
+        <option value="전량탈출">전량 탈출 (전부 → SGOV)</option>
+      </optgroup>
     </select></div>
   </div>
   <div class="frow">
@@ -568,11 +574,15 @@ function calcFromLogs(){
   const warn=[];
   logs().slice().sort((a,b)=>a.d<b.d?-1:1).forEach(r=>{
     const px=+r.px||0, q=+r.q||0;
-    if(r.t==='매수'){
-      if(q<=0||px<=0){ warn.push(`${r.d} 매수 — 수량과 단가가 필요합니다`); return; }
+    if(r.t==='매수' || r.t==='적립TQQQ'){
+      if(q<=0||px<=0){ warn.push(`${r.d} ${r.t==='매수'?'매수':'TQQQ 적립'} — 수량과 단가가 필요합니다`); return; }
       const cost=q*px;
       avg=(avg*qty+cost)/(qty+q);       // 이동평균 단가
-      qty+=q; sgov-=cost;
+      qty+=q;
+      if(r.t==='매수') sgov-=cost;      // 적립은 외부 돈이라 SGOV를 헐지 않는다
+    } else if(r.t==='적립SPYM'){
+      if(px<=0){ warn.push(`${r.d} SPYM 적립 — 금액이 필요합니다`); return; }
+      spym+=px;                          // 외부에서 들어온 돈
     } else if(SELL.includes(r.t)){
       if(q<=0||px<=0){ warn.push(`${r.d} ${r.t} — 수량과 단가가 필요합니다`); return; }
       if(q>qty+1e-9){ warn.push(`${r.d} ${r.t} — 보유 수량(${qty.toFixed(4)}주)보다 많이 팔았습니다`); }
@@ -636,9 +646,10 @@ function clearPos(){
 }
 
 /* 구분에 따라 입력칸 안내를 바꾼다 */
+const AMOUNT_ONLY=['SPYM매수','입금','적립SPYM'];
 function onType(){
   const t=document.getElementById('lgType').value;
-  const amountOnly = (t==='SPYM매수'||t==='입금');
+  const amountOnly=AMOUNT_ONLY.includes(t);
   document.getElementById('lbPx').textContent =
     amountOnly ? '금액 ($)' : (t==='전량탈출' ? 'TQQQ 청산 단가 ($)' : 'TQQQ 단가 ($)');
   document.getElementById('qtyBox').hidden = amountOnly || t==='전량탈출';
@@ -715,7 +726,7 @@ function addLog(){
   const d=document.getElementById('lgDate').value, t=document.getElementById('lgType').value;
   const px=+document.getElementById('lgPx').value, q=+document.getElementById('lgQty').value;
   if(!d||!(px>0)){ alert('날짜와 금액(단가)은 필수입니다'); return; }
-  const needQty = !(t==='SPYM매수'||t==='입금'||t==='전량탈출');
+  const needQty = !(AMOUNT_ONLY.includes(t)||t==='전량탈출');
   if(needQty && !(q>0)){ alert('수량을 입력해주세요'); return; }
   const L=logs(); L.push({d,t,px,q:needQty?q:0}); L.sort((a,b)=>a.d<b.d?-1:1); LS.set('logs',L);
   document.getElementById('lgPx').value=''; document.getElementById('lgQty').value='';
@@ -726,7 +737,8 @@ function renderLogs(){
   const L=logs(), t=document.getElementById('logTbl');
   if(!L.length){ t.innerHTML='<tr><td class="empty">기록이 없습니다</td></tr>'; return; }
   const nm={'매수':'매수','소익절':'소익절','대익절':'대익절','TS':'TS','리밸런싱':'리밸런싱',
-            'SPYM매수':'SPYM 매수','입금':'현금 입금','전량탈출':'전량 탈출'};
+            'SPYM매수':'SPYM 매수','입금':'현금 적립','전량탈출':'전량 탈출',
+            '적립SPYM':'SPYM 적립','적립TQQQ':'TQQQ 적립'};
   t.innerHTML='<tr><th>날짜</th><th>구분</th><th>단가/금액</th><th>수량</th><th></th></tr>'+
     L.map((r,i)=>`<tr><td>${r.d}</td><td><span class="tag">${nm[r.t]||r.t}</span></td><td>$${n2(r.px)}</td><td>${r.q?(+r.q).toLocaleString():'—'}</td>
       <td><button style="padding:3px 8px;font-size:11px" onclick="delLog(${i})">삭제</button></td></tr>`).join('');
