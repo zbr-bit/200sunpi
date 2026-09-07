@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>200슨피단 신호</title>
+<style>
+:root{
+  --bg:#000; --card:#0e0e10; --card2:#141417; --line:#26262b;
+  --p1:#fff; --p2:#9a9aa2; --p3:#5f5f68;
+  --tqqq:#e8714f; --spym:#b07cc0; --sgov:#5bb8e8;
+  --up:#e070c0; --low:#afd485; --close:#80dfff; --alert:#ff4d4d;
+  --ok:#5bd98a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--p1);
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;
+  -webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+.wrap{max-width:720px;margin:0 auto;padding:16px 14px 56px}
+h1{font-size:19px;margin:0;letter-spacing:-.02em}
+.sub{color:var(--p2);font-size:11px;margin-top:3px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px}
+.card h2{font-size:12px;color:var(--p2);margin:0 0 12px;font-weight:600;letter-spacing:.04em}
+.hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px}
+.ver{font-size:10px;color:var(--p3);text-align:right;white-space:nowrap}
+
+/* 신호등 */
+.signal{border-radius:14px;padding:18px 16px;border:1px solid var(--line);background:var(--card)}
+.signal.above{border-color:#2f5c3f;background:linear-gradient(180deg,#0d1a12,#0e0e10)}
+.signal.below{border-color:#5c3a2f;background:linear-gradient(180deg,#1a100d,#0e0e10)}
+.signal.alert{border-color:var(--alert);background:linear-gradient(180deg,#22090b,#0e0e10)}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;letter-spacing:.03em}
+.b-above{background:#153; color:#8ff0b4}
+.b-below{background:#432; color:#f0b48f}
+.b-alert{background:#511; color:#ff9a9a}
+.sig-name{font-size:22px;font-weight:800;margin:10px 0 2px;letter-spacing:-.03em;line-height:1.25}
+.sig-name.alert{color:var(--alert)}
+.acts{margin-top:12px;display:flex;flex-direction:column;gap:5px}
+.act{font-size:16px;font-weight:700}
+.t{color:var(--tqqq)} .s{color:var(--spym)} .g{color:var(--sgov)}
+.act .do{color:var(--p1);font-weight:600}
+.dd{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;color:var(--p2)}
+.dd b{color:var(--p1)}
+
+/* 수치 그리드 */
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border-radius:10px;overflow:hidden}
+.grid>div{background:var(--card2);padding:11px 12px}
+.k{font-size:10px;color:var(--p2);letter-spacing:.03em}
+.v{font-size:16px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+.v small{font-size:11px;font-weight:600;color:var(--p2);margin-left:4px}
+.pos{color:var(--ok)} .neg{color:var(--alert)}
+
+/* 차트 */
+.chart{width:100%;height:auto;display:block}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--p2)}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
+/* 입력 */
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+label{display:block;font-size:10px;color:var(--p2);margin-bottom:5px;letter-spacing:.03em}
+input,select{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--p1);
+  border-radius:8px;padding:10px;font-size:15px;font-family:inherit;font-variant-numeric:tabular-nums}
+input:focus,select:focus{outline:none;border-color:var(--p3)}
+button{background:var(--card2);border:1px solid var(--line);color:var(--p1);border-radius:8px;
+  padding:9px 14px;font-size:13px;font-family:inherit;font-weight:600;cursor:pointer}
+button:hover{border-color:var(--p3)}
+button.pri{background:#1d3a52;border-color:#2e5c80;color:#cfe8ff}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+/* 익절 테이블 */
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th{font-size:10px;color:var(--p2);text-align:left;font-weight:600;padding:7px 6px;border-bottom:1px solid var(--line);letter-spacing:.03em}
+td{padding:9px 6px;border-bottom:1px solid #1a1a1e}
+tr.done td{color:var(--p3)}
+tr.next td{background:#101a22}
+.chk{color:var(--ok)}
+.tag{font-size:10px;padding:2px 6px;border-radius:4px;background:#1d2a35;color:#9dc8e8;font-weight:600}
+.tag.next{background:#1d3a52;color:#cfe8ff}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* TS 강조 */
+.ts{border:1px solid #5c2f2f;background:linear-gradient(180deg,#1a0d0d,#0e0e10);border-radius:12px;padding:14px;margin-top:12px}
+.ts .k{color:#e8a0a0}
+.ts .v{font-size:26px;color:var(--alert)}
+
+/* 비중바 */
+.bar{display:flex;height:26px;border-radius:7px;overflow:hidden;margin-top:4px;background:var(--card2)}
+.bar span{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#000}
+.wlegend{display:flex;gap:14px;margin-top:9px;font-size:11px;flex-wrap:wrap}
+.wlegend b{font-variant-numeric:tabular-nums}
+
+.note{font-size:11px;color:var(--p3);line-height:1.65;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.warn{background:#1a1206;border:1px solid #4a3410;color:#e8c98f;font-size:11px;padding:9px 11px;border-radius:8px;margin-top:10px;line-height:1.6}
+details{margin-top:12px}
+summary{font-size:12px;color:var(--p2);cursor:pointer;padding:6px 0}
+.empty{color:var(--p3);font-size:12px;text-align:center;padding:18px 0}
+
+/* 신규 진입자 패널 */
+.nb{border:1px solid #2e4a5c;background:linear-gradient(180deg,#0b1620,#0e0e10);border-radius:14px;padding:18px 16px;margin-top:12px}
+.nb .badge{background:#173044;color:#9dd4f5}
+.nb h3{font-size:20px;font-weight:800;margin:10px 0 0;letter-spacing:-.03em;line-height:1.3}
+.nb .lead{font-size:13px;color:var(--p2);margin-top:6px}
+.nb .do{margin-top:14px;padding:13px;background:#0a1218;border:1px solid #1e3444;border-radius:10px}
+.nb .do .k{color:#7fb4d4}
+.nb .do .big{font-size:19px;font-weight:800;margin-top:3px}
+.nb .alt{font-size:11px;color:var(--p3);margin-top:7px;line-height:1.6}
+.steps{margin-top:14px;padding-top:13px;border-top:1px solid #1e3444}
+.step{display:flex;gap:10px;align-items:flex-start;font-size:13px;margin-top:9px}
+.step .no{flex:0 0 20px;height:20px;border-radius:50%;background:#1e3444;color:#9dd4f5;
+  font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.step .tx{color:var(--p2)} .step b{color:var(--p1);font-variant-numeric:tabular-nums}
+.dim{opacity:.55}
+
+/* 전체 흐름 */
+.fl{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid #1a1a1e}
+.fl:last-child{border-bottom:0;padding-bottom:0}
+.fl:first-child{padding-top:0}
+.fl .n{flex:0 0 24px;height:24px;border-radius:50%;background:#1d1d22;color:var(--p2);
+  font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.fl .ttl{font-size:15px;font-weight:700;line-height:1.35}
+.fl .dsc{font-size:12.5px;color:var(--p2);margin-top:4px;line-height:1.6}
+.fl .dsc b{color:var(--p1);font-variant-numeric:tabular-nums}
+.fl.off{opacity:.5}
+.fl.on .n{background:#1d3a52;color:#cfe8ff}
+.fl.on .ttl{color:#cfe8ff}
+.now{font-size:10px;font-weight:700;color:#cfe8ff;background:#1d3a52;padding:2px 7px;
+  border-radius:5px;margin-left:7px;vertical-align:2px;white-space:nowrap}
+.hint{font-size:11px;color:var(--p3);margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+
+/* 모드 전환 */
+.seg{display:flex;gap:0;margin-bottom:12px;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{flex:1;border:0;border-radius:0;background:var(--card2);color:var(--p2);padding:9px 8px;font-size:12.5px}
+.seg button.act{background:#1d3a52;color:#cfe8ff}
+.calc{background:#0a1218;border:1px solid #1e3444;border-radius:9px;padding:11px 12px;
+  font-size:11.5px;color:#9dd4f5;line-height:1.6;margin-bottom:12px}
+.calc b{color:#cfe8ff}
+input:disabled{opacity:.55;cursor:not-allowed}
+.err{background:#1f0d0d;border:1px solid #5c2f2f;color:#f0a0a0;font-size:11.5px;
+  padding:9px 11px;border-radius:8px;margin-bottom:12px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hdr">
+  <div>
+    <h1>아기티큐 200슨피단</h1>
+    <div class="sub" id="asof">—</div>
+  </div>
+  <div class="ver" id="verBox">—</div>
+</div>
+
+<div id="newbie"></div>
+<div id="signal" class="signal"></div>
+
+<div class="card">
+  <h2>밴드 현황</h2>
+  <div class="grid" id="bands"></div>
+</div>
+
+<div class="card">
+  <h2>전체 흐름 — 언제 사고 언제 파는가</h2>
+  <div id="flow"></div>
+</div>
+
+<div class="card" id="dcaCard">
+  <h2>새로 넣는 돈은 어디에</h2>
+  <div id="dca"></div>
+</div>
+
+<div class="card">
+  <h2>SPX 200일선 + 밴드 (최근 90거래일)</h2>
+  <div id="chart"></div>
+  <div class="legend">
+    <span><i style="background:var(--close)"></i>SPX 종가</span>
+    <span><i style="background:var(--up)"></i><span id="lgUp">상단</span></span>
+    <span><i style="background:var(--low)"></i><span id="lgLo">하단</span></span>
+    <span><i style="background:#4a4a52"></i>SMA200</span>
+  </div>
+</div>
+
+<div class="card">
+  <h2>내 포지션</h2>
+  <div class="seg">
+    <button id="mManual" onclick="setMode('manual')">직접 입력</button>
+    <button id="mLog" onclick="setMode('log')">매매 기록으로 계산</button>
+  </div>
+  <div id="calcNote"></div>
+  <div class="frow">
+    <div><label>TQQQ 평단가 ($)</label><input id="avg" type="number" step="0.01" placeholder="예: 53.20"></div>
+    <div><label>TQQQ 수량 (주)</label><input id="qty" type="number" step="0.0001" placeholder="예: 120"></div>
+  </div>
+  <div class="frow">
+    <div><label>SPYM 평가금 ($)</label><input id="spym" type="number" step="0.01" placeholder="예: 12000"></div>
+    <div><label>SGOV 금액 ($)</label><input id="sgov" type="number" step="0.01" placeholder="예: 0"></div>
+  </div>
+  <div class="btns">
+    <button class="pri" onclick="savePos()">저장</button>
+    <button onclick="clearPos()">비우기</button>
+  </div>
+  <div id="posOut"></div>
+</div>
+
+<div class="card">
+  <h2>익절 구간</h2>
+  <div id="levels"><div class="empty">평단가를 입력하면 익절 발동 가격이 계산됩니다</div></div>
+</div>
+
+<div class="card">
+  <h2>매매 기록</h2>
+  <div class="frow">
+    <div><label>날짜</label><input id="lgDate" type="date"></div>
+    <div><label>구분</label><select id="lgType" onchange="onType()">
+      <option value="매수">매수 (SGOV → TQQQ)</option>
+      <option value="소익절">소익절 (TQQQ → SPYM)</option>
+      <option value="대익절">대익절 (TQQQ → SPYM)</option>
+      <option value="TS">TS 방어매도 (TQQQ → SPYM)</option>
+      <option value="리밸런싱">리밸런싱 매도 (TQQQ → SPYM)</option>
+      <option value="SPYM매수">SPYM 매수 (SGOV → SPYM)</option>
+      <option value="입금">현금 입금 (→ SGOV)</option>
+      <option value="전량탈출">전량 탈출 (전부 → SGOV)</option>
+    </select></div>
+  </div>
+  <div class="frow">
+    <div><label id="lbPx">TQQQ 단가 ($)</label><input id="lgPx" type="number" step="0.01"></div>
+    <div id="qtyBox"><label>수량 (주)</label><input id="lgQty" type="number" step="0.0001"></div>
+  </div>
+  <div class="btns">
+    <button class="pri" onclick="addLog()">기록 추가</button>
+    <button onclick="exportCsv()">CSV 내보내기</button>
+    <button onclick="exportJson()">백업</button>
+  </div>
+  <div class="scroll" style="margin-top:12px"><table id="logTbl"></table></div>
+</div>
+
+<details>
+  <summary>⚙︎ 전략 설정 (기본값 = 200슨피단)</summary>
+  <div class="card" style="margin-top:6px">
+    <div class="frow">
+      <div><label>상단 밴드 (%)</label><input id="cUp" type="number" step="0.1" value="3"></div>
+      <div><label>하단 밴드 (%)</label><input id="cDn" type="number" step="0.1" value="3"></div>
+    </div>
+    <div class="frow">
+      <div><label>TS 하락폭 (%)</label><input id="cTs" type="number" step="1" value="10"></div>
+      <div><label>TS 추적 기준</label><select id="cRef">
+        <option value="SPX">SPX 지수 (26.08.14판)</option>
+        <option value="TQQQ">TQQQ 주가 (26.08.12판)</option>
+      </select></div>
+    </div>
+    <div class="frow">
+      <div><label>진입 시 TQQQ 비중 (%)</label><input id="cTq" type="number" step="1" value="67"></div>
+      <div><label>TS 방식</label><select id="cMode">
+        <option value="multi">다회성</option>
+        <option value="single">1회성</option>
+      </select></div>
+    </div>
+    <div class="btns">
+      <button class="pri" onclick="applyCfg()">적용</button>
+      <button onclick="preset('new')">26.08.14판</button>
+      <button onclick="preset('old')">26.08.12판</button>
+    </div>
+    <div class="warn">바꾸기 전에는 기본값을 그대로 쓰세요.</div>
+  </div>
+</details>
+
+<div class="note">
+  신호는 하루에 한 번, <b>미국장 종가</b>로만 판정합니다. 장중 등락에는 반응하지 않습니다.<br><br>
+  입력한 내용은 이 브라우저에만 저장됩니다.<br><br>
+  레버리지 ETF는 원금을 크게 잃을 수 있습니다. 투자 판단과 책임은 본인에게 있습니다.
+</div>
+
+</div>
+
+<script>
+/* ===== 데이터 =====
+   data.json 이 있으면 그것(15년 전체)을 쓰고, 없으면 아래 스냅샷으로 동작합니다.
+   전체 히스토리를 쓸 때는 시드가 필요 없습니다(처음부터 상태 머신을 돌림). */
+let FULL = false;   // data.json 로드 성공 시 true
+const SEEDS = {
+  SPX:  {pos:"ABOVE", peak:6141.02, da:28, rebal:true},   // 26.08.14판 (밴드3% / SPX −10%)
+  TQQQ: {pos:"ABOVE", peak:40.315,  da:29, rebal:true}    // 26.08.12판 (밴드2.5% / TQQQ −25%)
+};
+let META = null;
+let ROWS = [["20250627",6173.07,5829.58,40.71],["20250630",6204.95,5833.13,41.5],["20250701",6198.01,5836.35,40.44],["20250702",6227.42,5839.5,41.25],["20250703",6279.35,5842.77,42.4],["20250707",6229.98,5845.76,41.46],["20250708",6225.52,5848.71,41.51],["20250709",6263.26,5851.94,42.38],["20250710",6280.46,5854.77,42.18],["20250711",6259.75,5857.56,41.86],["20250714",6268.56,5860.31,42.31],["20250715",6243.76,5862.86,42.42],["20250716",6263.7,5865.57,42.53],["20250717",6297.36,5868.33,43.53],["20250718",6296.79,5871.12,43.38],["20250721",6305.6,5873.84,44.03],["20250722",6309.62,5876.84,43.35],["20250723",6358.91,5880.09,43.92],["20250724",6363.35,5883.4,44.21],["20250725",6388.64,5886.59,44.46],["20250728",6389.77,5890.06,44.9],["20250729",6370.86,5893.16,44.69],["20250730",6362.9,5896.01,44.85],["20250731",6339.39,5898.81,44.1],["20250801",6238.01,5900.93,41.46],["20250804",6329.94,5903.28,43.73],["20250805",6299.19,5905.7,42.82],["20250806",6345.06,5908.21,44.42],["20250807",6340,5910.7,44.87],["20250808",6389.45,5913.32,46.08],["20250811",6373.45,5915.92,45.67],["20250812",6445.76,5918.89,47.36],["20250813",6466.58,5922.24,47.43],["20250814",6468.54,5925.53,47.3],["20250815",6449.8,5928.74,46.63],["20250818",6449.15,5931.87,46.57],["20250819",6411.37,5934.76,44.67],["20250820",6395.78,5937.67,43.85],["20250821",6370.17,5941,43.24],["20250822",6466.91,5944.69,45.19],["20250825",6439.32,5948.32,44.79],["20250826",6465.94,5951.74,45.31],["20250827",6481.4,5954.5,45.52],["20250828",6501.86,5957.14,46.35],["20250829",6460.26,5959.47,44.68],["20250902",6415.54,5961.54,43.54],["20250903",6448.26,5963.86,44.56],["20250904",6502.08,5966.44,45.76],["20250905",6481.5,5969.1,45.91],["20250908",6495.15,5972.23,46.56],["20250909",6512.61,5975.32,46.94],["20250910",6532.04,5978.4,46.99],["20250911",6587.47,5981.75,47.78],["20250912",6584.29,5984.93,48.38],["20250915",6615.28,5988.16,49.62],["20250916",6606.76,5991.25,49.48],["20250917",6600.35,5994.15,49.17],["20250918",6631.96,5997.31,50.49],["20250919",6664.36,6000.47,51.49],["20250922",6693.75,6003.71,52.36],["20250923",6656.92,6006.74,51.31],["20250924",6637.97,6009.5,50.71],["20250925",6604.72,6012.15,50.03],["20250926",6643.7,6014.91,50.63],["20250929",6661.21,6017.95,51.3],["20250930",6688.46,6021.22,51.7],["20251001",6711.2,6024.36,52.43],["20251002",6715.35,6027.68,53.07],["20251003",6715.79,6031,52.35],["20251006",6740.28,6034.33,53.52],["20251007",6714.59,6037.65,52.65],["20251008",6753.72,6042.06,54.44],["20251009",6735.11,6046.4,54.22],["20251010",6552.51,6049.51,48.53],["20251013",6654.72,6052.91,51.62],["20251014",6644.31,6055.93,50.56],["20251015",6671.06,6059.1,51.6],["20251016",6629.07,6062.39,51.03],["20251017",6664.01,6066.18,51.99],["20251020",6735.13,6070.44,53.94],["20251021",6735.35,6074.78,53.88],["20251022",6699.4,6078.56,52.3],["20251023",6738.44,6082.38,53.61],["20251024",6791.69,6086.79,55.28],["20251027",6875.16,6091.58,58.22],["20251028",6890.89,6096.9,59.54],["20251029",6890.59,6102.17,60.31],["20251030",6822.34,6107.06,57.54],["20251031",6840.2,6111.52,58.36],["20251103",6851.97,6116.09,59.16],["20251104",6771.55,6119.96,55.54],["20251105",6796.29,6123.7,56.62],["20251106",6720.32,6126.87,53.44],["20251107",6728.8,6129.92,52.89],["20251110",6832.43,6133.58,56.35],["20251111",6846.61,6137.75,55.89],["20251112",6850.92,6141.66,55.78],["20251113",6737.49,6145.15,52.33],["20251114",6734.11,6148.47,52.37],["20251117",6672.41,6151.63,51.03],["20251118",6617.32,6154.74,49.18],["20251119",6642.16,6157.76,50.03],["20251120",6538.76,6160.15,46.45],["20251121",6602.99,6162.75,47.48],["20251124",6705.12,6166.14,51.08],["20251125",6765.88,6169.64,52.01],["20251126",6812.61,6173.36,53.37],["20251128",6849.09,6177.35,54.54],["20251201",6812.63,6180.83,54.05],["20251202",6829.37,6184.41,55.3],["20251203",6849.72,6188.01,55.69],["20251204",6857.12,6191.57,55.51],["20251205",6870.4,6195.34,56.15],["20251208",6846.51,6199.5,55.8],["20251209",6840.51,6203.79,56.01],["20251210",6886.68,6208.45,56.65],["20251211",6901,6213.17,56.11],["20251212",6827.41,6218,52.82],["20251215",6816.51,6222.31,52.02],["20251216",6800.26,6227.06,52.33],["20251217",6721.43,6231.78,49.4],["20251218",6774.76,6236.44,51.51],["20251219",6834.5,6241.92,53.52],["20251222",6878.49,6247.46,54.25],["20251223",6909.79,6253.94,55.01],["20251224",6932.05,6260.74,55.36],["20251226",6929.94,6267.39,55.31],["20251229",6905.74,6274.31,54.49],["20251230",6896.24,6280.6,54.1],["20251231",6845.5,6286.45,52.72],["20260102",6858.47,6292.67,52.35],["20260105",6902.05,6298.8,53.6],["20260106",6944.82,6305.21,55.01],["20260107",6920.93,6311.48,55.17],["20260108",6921.46,6317.25,54.19],["20260109",6966.28,6323.2,55.76],["20260112",6977.27,6329.52,55.89],["20260113",6963.74,6335.88,55.6],["20260114",6926.6,6342.6,53.83],["20260115",6944.47,6349.27,54.38],["20260116",6940.01,6355.8,54.14],["20260120",6796.86,6361.43,50.73],["20260121",6875.62,6368.83,52.73],["20260122",6913.35,6378.02,53.9],["20260123",6915.61,6387.29,54.38],["20260126",6950.23,6397.13,55.08],["20260127",6978.6,6404.74,56.54],["20260128",6978.03,6413.29,57.06],["20260129",6969.01,6421.31,56.04],["20260130",6939.03,6428.98,54],["20260202",6976.44,6436.88,55.1],["20260203",6917.81,6445.09,52.52],["20260204",6882.72,6453.09,49.76],["20260205",6798.4,6461.29,47.64],["20260206",6932.3,6469.51,50.59],["20260209",6964.82,6477.46,51.74],["20260210",6941.81,6484.74,51.02],["20260211",6941.47,6491.82,51.4],["20260212",6832.76,6498.34,48.26],["20260213",6836.17,6504.72,48.47],["20260217",6843.22,6511.09,48.35],["20260218",6881.31,6517.48,49.39],["20260219",6861.89,6523.35,48.83],["20260220",6909.51,6529.65,50.06],["20260223",6837.75,6535.8,48.24],["20260224",6890.07,6542.1,49.78],["20260225",6946.13,6548.51,51.87],["20260226",6908.86,6554.75,50.05],["20260227",6878.88,6559.93,49.52],["20260302",6881.62,6564.9,49.7],["20260303",6816.63,6569.52,48.1],["20260304",6869.5,6574.28,50.26],["20260305",6830.71,6578.65,49.8],["20260306",6740.02,6582.53,47.54],["20260309",6795.99,6586.81,49.39],["20260310",6781.48,6591.49,49.4],["20260311",6775.8,6596.16,49.35],["20260312",6672.62,6600.51,46.83],["20260313",6632.19,6604.06,45.93],["20260316",6699.38,6608.12,47.46],["20260317",6716.09,6612.14,48.16],["20260318",6624.7,6615.7,46.1],["20260319",6606.49,6619.05,45.69],["20260320",6506.48,6621.73,43.08],["20260323",6581,6624.78,44.57],["20260324",6556.37,6627.87,43.62],["20260325",6591.9,6630.83,44.39],["20260326",6477.16,6633.18,41.23],["20260327",6368.85,6634.83,38.78],["20260330",6343.72,6636.44,37.89],["20260331",6528.52,6638.86,41.68],["20260401",6575.32,6641.85,43.23],["20260402",6582.69,6644.6,43.33],["20260406",6611.83,6647.74,44.1],["20260407",6616.85,6650.92,44.15],["20260408",6782.81,6655,48],["20260409",6824.66,6659,48.96],["20260410",6816.89,6662.62,49.17],["20260413",6886.24,6666.59,50.66],["20260414",6967.38,6670.72,53.41],["20260415",7022.95,6674.97,55.65],["20260416",7041.28,6679.15,56.43],["20260417",7126.06,6683.79,58.59],["20260420",7109.14,6688.2,58.08],["20260421",7064.01,6692.12,57.4],["20260422",7137.9,6696.66,60.21],["20260423",7108.4,6701.08,59.22],["20260424",7165.08,6705.59,62.56],["20260427",7173.91,6710.05,62.64],["20260428",7138.8,6714.45,60.74],["20260429",7135.95,6718.79,61.86],["20260430",7209.01,6723.61,63.54],["20260501",7230.12,6728.45,65.3],["20260504",7200.75,6732.96,64.91],["20260505",7259.22,6737.77,67.39],["20260506",7365.12,6743.07,71.57],["20260507",7337.11,6748.21,71.34],["20260508",7398.93,6753.41,76.28],["20260511",7412.84,6758.66,76.96],["20260512",7400.96,6763.72,74.96],["20260513",7444.25,6768.99,77.24],["20260514",7501.24,6774.64,78.95],["20260515",7408.5,6779.87,75.34],["20260518",7403.05,6785.19,74.32],["20260519",7353.61,6790.77,72.93],["20260520",7432.97,6796.28,76.51],["20260521",7445.72,6802.02,76.95],["20260522",7473.47,6807.66,77.84],["20260526",7519.12,6813.55,81.95],["20260527",7520.36,6819.21,81.67],["20260528",7563.63,6825.16,83.68],["20260529",7580.06,6830.83,84.56],["20260601",7599.96,6836.5,86.04],["20260602",7609.78,6842.2,87.22],["20260603",7553.68,6847.72,86.56],["20260604",7584.31,6853.4,85.22],["20260605",7383.74,6858.26,73.05],["20260608",7405.73,6863.31,76.27],["20260609",7386.65,6868.39,73.72],["20260610",7266.99,6872.39,69.27],["20260611",7394.3,6877.17,76.01],["20260612",7431.46,6881.99,77.52],["20260615",7554.29,6887.36,84.59],["20260616",7511.35,6892.41,79.93],["20260617",7420.1,6897.21,77.54],["20260618",7500.58,6902.63,82.87],["20260622",7472.79,6907.75,82.58],["20260623",7365.46,6912.07,74.44],["20260624",7358.22,6916.45,73.3],["20260625",7357.49,6920.77,74.95],["20260626",7354.02,6924.97,71.83],["20260629",7440.43,6929.52,77.19],["20260630",7499.36,6934.07,81],["20260701",7483.23,6938.57,77.46],["20260702",7483.24,6942.91,73.35],["20260706",7537.43,6947.56,76.42],["20260707",7503.85,6952.08,72.23],["20260708",7482.71,6956.33,72.72],["20260709",7543.64,6960.73,76.34],["20260710",7575.39,6965.14,77.03],["20260713",7515.34,6969.43,72.64],["20260714",7543.59,6973.96,75.02],["20260715",7572.4,6978.8,74.44],["20260716",7533.77,6983.25,70.74],["20260717",7457.69,6987.23,67.53],["20260720",7443.28,6991,67.65],["20260721",7509.2,6994.99,71.37],["20260722",7498.96,6998.91,70.28],["20260723",7408.3,7002.37,66.3],["20260724",7411.98,7005.73,64],["20260727",7413.18,7009.23,63.4],["20260728",7428.78,7012.6,61.56],["20260729",7316.15,7015.51,57.75],["20260730",7437.63,7019.93,63.3],["20260731",7489.72,7024.11,64.62],["20260803",7600.5,7028.89,67.96],["20260804",7736.52,7034.22,74.82],["20260805",7723.55,7039.69,72.84],["20260806",7709.96,7044.92,72.03],["20260807",7757.64,7050.03,74.47],["20260810",7753.11,7055.12,73.8],["20260811",7728.2,7060.26,73.06],["20260812",7748.5,7065.31,74.6],["20260813",7798.99,7070.35,77.15],["20260814",7785.76,7074.9,76.79],["20260817",7745.06,7079.17,76.4],["20260818",7691.76,7083.18,72.53],["20260819",7707.98,7087.61,72.06],["20260820",7641.16,7091.61,70.48],["20260821",7674.37,7095.72,71.17],["20260824",7652.86,7100.13,69.01],["20260825",7677.28,7104.54,70.27],["20260826",7675.7,7109.31,70.47],["20260827",7730.99,7114.32,73.3],["20260828",7711.76,7118.72,71.85],["20260831",7686.14,7122.92,71.92],["20260901",7631.47,7126.82,69.15],["20260902",7666.6,7131.47,69.6],["20260903",7747.71,7136.53,72.03],["20260904",7718.6,7141.76,72.37]];
+
+/* ===== 설정 ===== */
+/* 26.08.14 최종판 기본값 */
+const DEF = {up:0.03, dn:0.03, ts:0.10, tsRef:'SPX', mode:'multi', tq:67};
+let CFG = {...DEF};
+const SMALL = [10,25,50];      // 소익절: TQQQ 잔고 10% 매도 → SPYM
+const LARGE = [100,200,400];   // 대익절: TQQQ 잔고 50% 매도 → SPYM
+
+/* ===== 저장소 ===== */
+const LS = {
+  get(k,d){ try{ const v=localStorage.getItem('sunpi_'+k); return v?JSON.parse(v):d; }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem('sunpi_'+k, JSON.stringify(v)); }catch(e){} }
+};
+
+/* ===== 상태 머신 (공식 위젯 analyzeSignal 이식) ===== */
+function analyze(){
+  const SEED = FULL ? {pos:"BELOW", peak:0, da:0, rebal:false} : (SEEDS[CFG.tsRef]||SEEDS.SPX);
+  let pos=SEED.pos, peak=SEED.peak, da=SEED.da, rebal=SEED.rebal, tsArmed=true;
+  let alert=false, rebalToday=false, entryIdx=-1, cycleMax=0, events=[];
+  for(let i=0;i<ROWS.length;i++){
+    const [d,S,sma,T]=ROWS[i];
+    const bU=sma*(1+CFG.up), bD=sma*(1-CFG.dn);
+    const ref = CFG.tsRef==='SPX' ? S : T;   // TS 추적 기준
+    let tp=pos;
+    if(S>=bU) tp="ABOVE"; else if(S<bD) tp="BELOW";
+    const zone = S>=bU ? '위' : (S<bD ? '아래' : '안');
+
+    rebalToday=false;
+    if(pos==="BELOW" && tp==="ABOVE"){
+      peak=ref; da=1; alert=false; tsArmed=true; rebal=false; entryIdx=i; cycleMax=T;
+      events.push([d,"진입",T]);
+    } else if(pos==="ABOVE" && tp==="BELOW"){
+      peak=0; da=0; alert=false; rebal=false; entryIdx=-1; cycleMax=0;
+      events.push([d,"전량탈출",T]);
+    } else if(tp==="ABOVE"){
+      da++;
+      if(ref>peak) peak=ref;
+      if(T>cycleMax) cycleMax=T;
+      let trig=false;
+      if(ref<=peak*(1-CFG.ts)){
+        if(CFG.mode==='multi'){ trig=true; peak=ref; }   // 다회성: 고점 리셋
+        else if(tsArmed){ trig=true; tsArmed=false; }
+      }
+      alert=trig;
+      if(trig) events.push([d,"TS 발동",T]);
+      if(zone==='안' && !rebal){ rebal=true; rebalToday=true; events.push([d,"리밸런싱",T]); }
+    }
+    pos=tp;
+  }
+  const last=ROWS[ROWS.length-1];
+  const bU=last[2]*(1+CFG.up), bD=last[2]*(1-CFG.dn);
+  const zone = last[1]>=bU ? '위' : (last[1]<bD ? '아래' : '안');
+  const tsSpent = (CFG.mode==='single' && !tsArmed);   // 1회성 TS를 이미 써버렸나
+  return {pos, peak, da, alert, rebal, rebalToday, events, cycleMax, zone, tsSpent,
+    entryDate: entryIdx>=0 ? ROWS[entryIdx][0] : null,
+    entryPx:   entryIdx>=0 ? ROWS[entryIdx][3] : null,
+    date:last[0], spx:last[1], sma:last[2], tqqq:last[3]};
+}
+
+/* ===== 표시 헬퍼 ===== */
+const fd=s=>`${s.slice(0,4)}.${s.slice(4,6)}.${s.slice(6,8)}`;
+const n2=v=>v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct=v=>(v>=0?'+':'')+v.toFixed(2)+'%';
+const cls=v=>v>=0?'pos':'neg';
+
+/* ===== 전체 흐름 (사이클 4단계, 현재 위치 강조) ===== */
+function renderFlow(a){
+  const up=a.sma*(1+CFG.up), lo=a.sma*(1-CFG.dn);
+  const toUp=(up/a.spx-1)*100, toLo=(lo/a.spx-1)*100;
+  const tqw=CFG.tq, spw=100-CFG.tq;
+  const tsPct=(CFG.ts*100).toFixed(0);
+  const tsPx=(a.peak>0 && !a.tsSpent) ? a.peak*(1-CFG.ts) : null;
+
+  // 시장이 지금 몇 번 단계인가
+  let mkt;
+  if(a.pos==="BELOW") mkt=4;
+  else if(a.alert)    mkt=3;
+  else if(a.da<=3)    mkt=1;
+  else                mkt=2;
+  // 내가 들어갈 자리 (아직 안 산 사람은 ①에서만 시작 가능)
+  const mine = isNewbie() ? 1 : mkt;
+
+  const steps=[
+    {t:'산다',
+     d:`SPX가 상단선 <b>${n2(up)}</b>을 넘으면, 3일에 걸쳐 나눠서 `
+      +`<span class="t">TQQQ ${tqw}%</span> · <span class="s">SPYM ${spw}%</span> 매수<br>`
+      +(a.pos==="ABOVE"
+        ? `<span style="color:var(--p3)">SPX가 이미 상단선 위에 있어 지금은 살 수 없습니다. ④를 거친 뒤에 다시 기회가 옵니다</span>`
+        : `지금 SPX는 <b>${n2(a.spx)}</b>, 상단선까지 <b>${pct(toUp)}</b>`)},
+    {t:'오르면 나눠서 판다',
+     d:`TQQQ가 <b>+10% · +25% · +50%</b> 오를 때마다 → 남은 TQQQ의 <b>10%</b>를 팔아 <span class="s">SPYM</span>으로<br>`
+      +`<b>+100% · +200% · +400%</b>에서는 → 남은 TQQQ의 <b>50%</b>를 팔아 <span class="s">SPYM</span>으로<br>`
+      +`<span style="color:var(--p3)">한 번 SPYM으로 옮긴 돈은 ④까지 그대로 둡니다</span>`},
+    {t:'떨어지면 절반 판다',
+     d:`SPX가 고점에서 <b>−${tsPct}%</b> 빠질 때마다 → <span class="t">TQQQ</span>의 <b>50%</b>를 팔아 <span class="s">SPYM</span>으로<br>`
+      +(tsPx?`이번 발동선 <b>${n2(tsPx)}</b> (지금부터 <b>${pct((tsPx/a.spx-1)*100)}</b>)`
+            :`<span style="color:var(--p3)">${a.tsSpent?'이번 사이클에는 이미 발동했습니다 (1회성 설정)':'매수한 뒤부터 적용됩니다'}</span>`)
+      +`<br><span style="color:var(--p3)">${CFG.mode==='multi'
+          ? `한 번 터지면 그 자리가 새 고점이 되어, 또 −${tsPct}% 빠지면 또 절반`
+          : '한 사이클에 한 번만 발동합니다'}</span>`},
+    {t:'전부 판다',
+     d:`SPX가 하단선 <b>${n2(lo)}</b> 아래로 내려가면 → <span class="t">TQQQ</span>·<span class="s">SPYM</span> `
+      +`<b>전량 매도</b> 후 <span class="g">SGOV</span>로<br>`
+      +`지금 SPX는 <b>${n2(a.spx)}</b>, 하단선까지 <b>${pct(toLo)}</b><br>`
+      +`<span style="color:var(--p3)">여기서 모은 현금이 다음 ①의 실탄이 됩니다</span>`},
+  ];
+
+  const same = mkt===mine;
+  document.getElementById('flow').innerHTML = steps.map((s,i)=>{
+    const n=i+1, on=(n===mkt||n===mine);
+    let tag='';
+    if(same && n===mkt)      tag='<span class="now">지금 여기</span>';
+    else if(n===mine)        tag='<span class="now">내가 들어갈 자리</span>';
+    else if(n===mkt)         tag='<span class="now" style="background:#2a2a30;color:var(--p2)">시장은 지금 여기</span>';
+    return `<div class="fl ${on?'on':'off'}">
+      <div class="n">${n}</div>
+      <div><div class="ttl">${s.t}${tag}</div>
+        <div class="dsc">${s.d}</div></div>
+    </div>`;
+  }).join('');
+}
+
+/* ===== 신규 진입자 패널 =====
+   포지션이 비어 있으면 "이미 들고 있는 사람용 지시" 대신 이걸 띄운다. */
+function isNewbie(){ const p=pos(); return !(+p.avg>0) && !(+p.qty>0); }
+
+function renderNewbie(a){
+  const el=document.getElementById('newbie');
+  if(!isNewbie()){ el.innerHTML=''; return false; }
+
+  const up=a.sma*(1+CFG.up), lo=a.sma*(1-CFG.dn);
+  const toUp=(up/a.spx-1)*100, toLo=(lo/a.spx-1)*100;
+  const tqw=CFG.tq, spw=100-CFG.tq;
+  let badge, title, lead, doK, doV, alt;
+
+  if(a.pos==="ABOVE" && a.da<=3){
+    badge='지금이 진입 신호';
+    title=`상단 밴드 돌파 ${a.da}일 차 — 지금 들어갑니다`;
+    lead=`오늘부터 3일에 걸쳐 나눠 삽니다.`;
+    doK='오늘 살 것';
+    doV=`목표 금액의 ${a.da}/3 → <span class="t">TQQQ ${tqw}%</span> · <span class="s">SPYM ${spw}%</span>`;
+    alt=`남은 ${3-a.da}일간 나머지를 마저 삽니다.`;
+  } else if(a.pos==="ABOVE"){
+    badge='기다리는 구간';
+    title='오늘은 TQQQ를 사지 않습니다';
+    lead=`매수 타이밍은 ${a.entryDate?fd(a.entryDate):'—'}에 지나갔습니다. 다음 기회를 기다립니다.`;
+    doK='오늘 할 일';
+    doV=`<span class="s">SPYM 100%</span> 매수`;
+    alt=`다음 기회는 SPX가 <b>${n2(lo)}</b> 아래로 내려갔다가(지금부터 ${pct(toLo)}) 다시 올라올 때 옵니다. 아래 ‘전체 흐름’의 ④ → ① 순서입니다.`;
+  } else {
+    badge='기다리는 구간';
+    title='오늘은 현금만 모읍니다';
+    lead='매수 신호를 기다리는 구간입니다.';
+    doK='오늘 할 일';
+    doV=`<span class="g">SGOV 100%</span> 매수`;
+    alt=`SPX가 <b>${n2(up)}</b>를 넘으면(지금부터 ${pct(toUp)}) TQQQ 매수를 시작합니다.`;
+  }
+
+  el.innerHTML=`<div class="nb">
+    <span class="badge">${badge}</span>
+    <h3>${title}</h3>
+    <div class="lead">${lead}</div>
+    <div class="do"><div class="k">${doK}</div><div class="big">${doV}</div>
+      ${alt?`<div class="alt">${alt}</div>`:''}</div>
+    <div class="hint">이미 TQQQ를 갖고 있다면 아래 ‘내 포지션’에 평단가와 수량을 넣으세요.</div>
+  </div>`;
+  return true;
+}
+
+/* ===== 신호등 ===== */
+function renderSignal(a){
+  const el=document.getElementById('signal');
+  let kind, badge, name, acts, note;
+  const tqW=CFG.tq, spW=100-CFG.tq;
+  if(a.pos==="BELOW"){
+    kind='below'; badge=['b-below','하락장 · 전량 현금'];
+    name='하단 밴드 이탈 (전량 탈출)';
+    acts=[['t','TQQQ','전량 매도'],['s','SPYM','전량 매도'],['g','SGOV','전액 이동']];
+    note='';
+  } else if(a.alert){
+    kind='alert'; badge=['b-alert','🚨 방어 매도'];
+    name='오늘 TQQQ 절반을 팝니다';
+    acts=[['t','TQQQ','보유 수량의 50% 매도'],['s','SPYM','판 금액 전부 매수']];
+    note='';
+  } else if(a.rebalToday){
+    kind='above'; badge=['b-above','비중 조정'];
+    name=`오늘 ${tqW} : ${spW}으로 맞춥니다`;
+    acts=[['t','TQQQ',`${tqW}%가 되도록`],['s','SPYM',`${spW}%가 되도록`]];
+    note='';
+  } else if(a.da<=3){
+    kind='above'; badge=['b-above',`매수 ${a.da}일 차`];
+    name=`오늘 목표의 ${a.da}/3을 삽니다`;
+    acts=[['t','TQQQ',`${tqW}% 비중으로 매수`],['s','SPYM',`${spW}% 비중으로 매수`],['g','SGOV','해당분 매도']];
+    note=`남은 ${3-a.da}일간 나머지를 마저 삽니다.`;
+  } else {
+    kind='above'; badge=['b-above',`보유 ${a.da}일 차`];
+    name='오늘 할 일 없음';
+    acts=[['t','TQQQ','그대로 보유'],['s','SPYM','그대로 보유']];
+    note='';
+  }
+  const dd = a.peak>0 ? (((CFG.tsRef==='SPX'?a.spx:a.tqqq)-a.peak)/a.peak*100) : null;
+  el.className='signal '+kind;
+  el.innerHTML=`
+    <span class="badge ${badge[0]}">${badge[1]}</span>
+    <div class="sig-name ${a.alert?'alert':''}">${name}</div>
+    <div class="acts">${acts.map(x=>`<div class="act"><span class="${x[0]}">${x[1]}</span> <span class="do">${x[2]}</span></div>`).join('')}</div>
+    <div class="dd">
+      ${dd===null?'':`고점 대비 <b class="${cls(dd)}">${pct(dd)}</b>`}
+      ${a.entryDate?` · ${fd(a.entryDate)}부터 ${a.da}일째`:''}
+      ${note?`<br><span style="color:var(--p3)">${note}</span>`:''}
+    </div>`;
+}
+
+/* ===== 밴드 수치 ===== */
+function renderBands(a){
+  const up=a.sma*(1+CFG.up), lo=a.sma*(1-CFG.dn);
+  const toLo=(lo/a.spx-1)*100, toUp=(up/a.spx-1)*100, vsSma=(a.spx/a.sma-1)*100;
+  document.getElementById('bands').innerHTML=`
+    <div><div class="k">SPX 종가</div><div class="v">${n2(a.spx)}</div></div>
+    <div><div class="k">SMA200</div><div class="v">${n2(a.sma)} <small class="${cls(vsSma)}">${pct(vsSma)}</small></div></div>
+    <div><div class="k">상단 밴드 +${(CFG.up*100).toFixed(1)}% (매수선)</div><div class="v">${n2(up)} <small class="${cls(toUp)}">${pct(toUp)}</small></div></div>
+    <div><div class="k">하단 밴드 −${(CFG.dn*100).toFixed(1)}% (탈출선)</div><div class="v">${n2(lo)} <small class="${cls(toLo)}">${pct(toLo)}</small></div></div>`;
+
+  // 가격 위치 + 보유 상태를 함께 본다.
+  // 다 팔고 나온 상태(BELOW)라면 밴드 안이어도 아직 살 때가 아니므로 SGOV.
+  let Z;
+  if(a.pos==="BELOW")    Z=['다음 기회 대기','<span class="g">SGOV 100%</span>','var(--sgov)'];
+  else if(a.zone==='위') Z=['상승장','<span class="s">SPYM 100%</span>','var(--spym)'];
+  else                   Z=['눌림목',`<span class="t">TQQQ ${CFG.tq}%</span> · <span class="s">SPYM ${100-CFG.tq}%</span>`,'var(--tqqq)'];
+  document.getElementById('dca').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="badge b-above" style="background:#1a1a20;color:${Z[2]}">${Z[0]}</span>
+      <span style="font-size:17px;font-weight:800">${Z[1]}</span>
+    </div>
+    <div style="font-size:12px;color:var(--p3);margin-top:9px">새로 들어온 돈만 이 비율로. 갖고 있는 건 그대로 둡니다.</div>`;
+}
+
+/* ===== 차트 ===== */
+function renderChart(){
+  document.getElementById('lgUp').textContent=`상단 +${(CFG.up*100).toFixed(1)}%`;
+  document.getElementById('lgLo').textContent=`하단 −${(CFG.dn*100).toFixed(1)}%`;
+  const K=90, s=ROWS.slice(-K);
+  const W=680,H=240,PL=8,PR=52,PT=12,PB=20;
+  const up=s.map(r=>r[2]*(1+CFG.up)), lo=s.map(r=>r[2]*(1-CFG.dn));
+  const all=s.map(r=>r[1]).concat(up,lo);
+  const mn=Math.min(...all), mx=Math.max(...all), rg=(mx-mn)||1;
+  const X=i=>PL+i/(K-1)*(W-PL-PR), Y=v=>PT+(1-(v-mn)/rg)*(H-PT-PB);
+  const path=arr=>arr.map((v,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)).join(' ');
+  const last=s[s.length-1];
+  const mk=[];
+  for(let i=1;i<s.length;i++){
+    const p=s[i-1], c=s[i];
+    const pA=p[1]>=p[2]*(1+CFG.up), cA=c[1]>=c[2]*(1+CFG.up);
+    const cB=c[1]<c[2]*(1-CFG.dn);
+    if(!pA&&cA) mk.push([i,'#8ff0b4']);
+    if(cB) mk.push([i,'#f0b48f']);
+  }
+  document.getElementById('chart').innerHTML=`
+  <svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="height:240px">
+    <path d="${path(up)}" fill="none" stroke="var(--up)" stroke-width="2" opacity=".85"/>
+    <path d="${path(lo)}" fill="none" stroke="var(--low)" stroke-width="2" opacity=".85"/>
+    <path d="${path(s.map(r=>r[2]))}" fill="none" stroke="#4a4a52" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <path d="${path(s.map(r=>r[1]))}" fill="none" stroke="var(--close)" stroke-width="2.6"/>
+    ${mk.map(m=>`<circle cx="${X(m[0]).toFixed(1)}" cy="${Y(s[m[0]][1]).toFixed(1)}" r="3.5" fill="${m[1]}"/>`).join('')}
+    <circle cx="${X(K-1).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="4" fill="var(--close)"/>
+    <text x="${(W-PR+6)}" y="${(Y(last[1])+4).toFixed(1)}" fill="var(--close)" font-size="12" font-weight="700">${Math.round(last[1]).toLocaleString()}</text>
+    <text x="${(W-PR+6)}" y="${(Y(up[K-1])+4).toFixed(1)}" fill="var(--up)" font-size="11">${Math.round(up[K-1]).toLocaleString()}</text>
+    <text x="${(W-PR+6)}" y="${(Y(lo[K-1])+4).toFixed(1)}" fill="var(--low)" font-size="11">${Math.round(lo[K-1]).toLocaleString()}</text>
+    <text x="${PL}" y="${H-4}" fill="var(--p3)" font-size="10">${fd(s[0][0])}</text>
+    <text x="${W-PR}" y="${H-4}" fill="var(--p3)" font-size="10" text-anchor="end">${fd(last[0])}</text>
+  </svg>`;
+}
+
+/* ===== 포지션 =====
+   두 가지 방식: 직접 입력 / 매매 기록으로 자동 계산 */
+const SELL=['소익절','대익절','TS','리밸런싱'];   // 전부 TQQQ → SPYM
+
+function mode(){ return LS.get('mode','manual'); }
+function manualPos(){ return LS.get('pos',{avg:'',qty:'',spym:'',sgov:''}); }
+
+/* 매매 기록을 순서대로 재생해서 현재 잔고를 만든다 */
+function calcFromLogs(){
+  let qty=0, avg=0, spym=0, sgov=0;
+  const warn=[];
+  logs().slice().sort((a,b)=>a.d<b.d?-1:1).forEach(r=>{
+    const px=+r.px||0, q=+r.q||0;
+    if(r.t==='매수'){
+      if(q<=0||px<=0){ warn.push(`${r.d} 매수 — 수량과 단가가 필요합니다`); return; }
+      const cost=q*px;
+      avg=(avg*qty+cost)/(qty+q);       // 이동평균 단가
+      qty+=q; sgov-=cost;
+    } else if(SELL.includes(r.t)){
+      if(q<=0||px<=0){ warn.push(`${r.d} ${r.t} — 수량과 단가가 필요합니다`); return; }
+      if(q>qty+1e-9){ warn.push(`${r.d} ${r.t} — 보유 수량(${qty.toFixed(4)}주)보다 많이 팔았습니다`); }
+      const sold=Math.min(q,qty);
+      qty-=sold; spym+=sold*px;         // 평단가는 그대로 (이동평균법)
+      if(qty<1e-9){ qty=0; avg=0; }
+    } else if(r.t==='SPYM매수'){
+      if(px<=0){ warn.push(`${r.d} SPYM 매수 — 금액이 필요합니다`); return; }
+      sgov-=px; spym+=px;
+    } else if(r.t==='입금'){
+      if(px<=0){ warn.push(`${r.d} 입금 — 금액이 필요합니다`); return; }
+      sgov+=px;
+    } else if(r.t==='전량탈출'){
+      if(px<=0){ warn.push(`${r.d} 전량탈출 — TQQQ 청산 단가가 필요합니다`); return; }
+      sgov+=qty*px+spym; qty=0; avg=0; spym=0;
+    }
+  });
+  if(sgov<-1e-6) warn.push(`현금(SGOV)이 ${n2(sgov)}로 마이너스입니다. ‘현금 입금’ 기록을 먼저 넣어주세요`);
+  return {qty, avg, spym, sgov, warn};
+}
+
+/* 화면 전체가 쓰는 실효 포지션 */
+function pos(){
+  if(mode()==='log'){
+    const c=calcFromLogs();
+    return {avg: c.qty>0?String(c.avg):'', qty: c.qty>0?String(c.qty):'',
+            spym: String(c.spym), sgov: String(c.sgov), _calc:c};
+  }
+  return manualPos();
+}
+
+function setMode(m){ LS.set('mode',m); loadPos(); render(); }
+
+function loadPos(){
+  const m=mode(), isLog=m==='log';
+  document.getElementById('mManual').classList.toggle('act',!isLog);
+  document.getElementById('mLog').classList.toggle('act',isLog);
+  const p = isLog ? pos() : manualPos();
+  ['avg','qty','spym','sgov'].forEach(k=>{
+    const el=document.getElementById(k);
+    el.value = isLog ? (p[k]&&+p[k]!==0 ? (+p[k]).toFixed(k==='qty'?4:2) : (k==='qty'||k==='avg'?'':'0.00')) : (p[k]??'');
+    el.disabled = isLog;
+  });
+  const note=document.getElementById('calcNote');
+  if(!isLog){ note.innerHTML=''; return; }
+  const c=p._calc, n=logs().length;
+  note.innerHTML =
+    (c.warn.length?`<div class="err">${c.warn.map(w=>'· '+w).join('<br>')}</div>`:'')
+    + `<div class="calc">아래 <b>매매 기록 ${n}건</b>을 순서대로 재생해 계산한 값입니다. `
+    + `기록을 추가·삭제하면 즉시 다시 계산됩니다.${n?'':' 기록을 먼저 넣어주세요.'}</div>`;
+}
+function savePos(){
+  if(mode()==='log'){ alert('매매 기록으로 계산 중입니다. 직접 고치려면 위에서 ‘직접 입력’으로 바꾸세요.'); return; }
+  LS.set('pos',{avg:document.getElementById('avg').value,qty:document.getElementById('qty').value,
+    spym:document.getElementById('spym').value,sgov:document.getElementById('sgov').value});
+  render();
+}
+function clearPos(){
+  if(mode()==='log'){ alert('매매 기록으로 계산 중입니다. 기록을 지우려면 아래 표에서 삭제하세요.'); return; }
+  LS.set('pos',{avg:'',qty:'',spym:'',sgov:''}); loadPos(); render();
+}
+
+/* 구분에 따라 입력칸 안내를 바꾼다 */
+function onType(){
+  const t=document.getElementById('lgType').value;
+  const amountOnly = (t==='SPYM매수'||t==='입금');
+  document.getElementById('lbPx').textContent =
+    amountOnly ? '금액 ($)' : (t==='전량탈출' ? 'TQQQ 청산 단가 ($)' : 'TQQQ 단가 ($)');
+  document.getElementById('qtyBox').hidden = amountOnly || t==='전량탈출';
+}
+
+function renderPos(a){
+  const p=pos(), avg=+p.avg, qty=+p.qty, spym=+p.spym||0, sgov=+p.sgov||0;
+  const out=document.getElementById('posOut');
+  const tsPx = (a.peak>0 && !a.tsSpent) ? a.peak*(1-CFG.ts) : null;
+  const isSpx = CFG.tsRef==='SPX';
+  const cur = isSpx ? a.spx : a.tqqq;
+  const $ = v => (isSpx?'':'$')+n2(v);
+
+  let html='';
+  // 아직 아무것도 안 산 사람에게 "TQQQ 절반 매도" 카드를 띄우지 않는다
+  if(tsPx && !isNewbie()){
+    const gap=(tsPx/cur-1)*100;
+    const lo=a.sma*(1-CFG.dn);
+    html+=`<div class="ts">
+      <div class="k">여기 닿으면 TQQQ 절반 매도</div>
+      <div class="v">${$(tsPx)}</div>
+      <div style="font-size:12px;color:var(--p2);margin-top:4px">현재 ${$(cur)} · <b style="color:var(--p1)">${pct(gap)}</b> 남음</div>
+    </div>`;
+  }
+  if(avg>0){
+    const ret=(a.tqqq/avg-1)*100;
+    const val=qty>0?qty*a.tqqq:0;
+    html+=`<div class="grid" style="margin-top:12px">
+      <div><div class="k">사이클 누적 수익률</div><div class="v ${cls(ret)}">${pct(ret)}</div></div>
+      <div><div class="k">TQQQ 평가금</div><div class="v">${val?'$'+n2(val):'—'}</div></div>
+    </div>`;
+    if(val||spym||sgov){
+      const tot=val+spym+sgov;
+      const w=[['TQQQ',val,'var(--tqqq)'],['SPYM',spym,'var(--spym)'],['SGOV',sgov,'var(--sgov)']];
+      const risk=val/tot*100;
+      html+=`<div style="margin-top:14px"><div class="k">현재 비중</div>
+        <div class="bar">${w.map(x=>x[1]>0?`<span style="width:${x[1]/tot*100}%;background:${x[2]}">${x[1]/tot>=0.12?(x[1]/tot*100).toFixed(0)+'%':''}</span>`:'').join('')}</div>
+        <div class="wlegend">${w.map(x=>`<span style="color:${x[2]}">■ ${x[0]} <b>${(x[1]/tot*100).toFixed(1)}%</b></span>`).join('')}</div>
+        </div>`;
+    }
+  }
+  out.innerHTML=html;
+  renderLevels(a, avg);
+}
+
+function renderLevels(a, avg){
+  const el=document.getElementById('levels');
+  if(!(avg>0)){ el.innerHTML='<div class="empty">평단가를 입력하면 익절 발동 가격이 계산됩니다</div>'; return; }
+  const rows=[];
+  SMALL.forEach(p=>rows.push({p,px:avg*(1+p/100),kind:'소익절',sell:'잔고 10%'}));
+  LARGE.forEach(p=>rows.push({p,px:avg*(1+p/100),kind:'대익절',sell:'잔고 50%'}));
+  rows.sort((x,y)=>x.p-y.p);
+  let nextDone=false;
+  const body=rows.map(r=>{
+    const done = a.cycleMax>0 && a.cycleMax>=r.px;
+    const isNext = !done && !nextDone; if(isNext) nextDone=true;
+    const gap=(r.px/a.tqqq-1)*100;
+    return `<tr class="${done?'done':''}${isNext?' next':''}">
+      <td>${done?'<span class="chk">✓</span> ':''}+${r.p}%</td>
+      <td><span class="tag${isNext?' next':''}">${r.kind}</span></td>
+      <td>$${n2(r.px)}</td>
+      <td class="${done?'':cls(gap)}">${done?'달성':pct(gap)}</td>
+      <td style="color:var(--p2)">${r.sell}</td>
+    </tr>`;
+  }).join('');
+  el.innerHTML=`<div class="scroll"><table>
+    <tr><th>수익률</th><th></th><th>이 가격에</th><th>남은 거리</th><th>팔 양</th></tr>${body}</table></div>
+    <div class="warn">판 돈은 전부 SPYM으로 옮기고, 사이클이 끝날 때까지 그대로 둡니다.</div>`;
+}
+
+/* ===== 매매 기록 ===== */
+function logs(){ return LS.get('logs',[]); }
+function addLog(){
+  const d=document.getElementById('lgDate').value, t=document.getElementById('lgType').value;
+  const px=+document.getElementById('lgPx').value, q=+document.getElementById('lgQty').value;
+  if(!d||!(px>0)){ alert('날짜와 금액(단가)은 필수입니다'); return; }
+  const needQty = !(t==='SPYM매수'||t==='입금'||t==='전량탈출');
+  if(needQty && !(q>0)){ alert('수량을 입력해주세요'); return; }
+  const L=logs(); L.push({d,t,px,q:needQty?q:0}); L.sort((a,b)=>a.d<b.d?-1:1); LS.set('logs',L);
+  document.getElementById('lgPx').value=''; document.getElementById('lgQty').value='';
+  renderLogs(); loadPos(); render();
+}
+function delLog(i){ const L=logs(); L.splice(i,1); LS.set('logs',L); renderLogs(); loadPos(); render(); }
+function renderLogs(){
+  const L=logs(), t=document.getElementById('logTbl');
+  if(!L.length){ t.innerHTML='<tr><td class="empty">기록이 없습니다</td></tr>'; return; }
+  const nm={'매수':'매수','소익절':'소익절','대익절':'대익절','TS':'TS','리밸런싱':'리밸런싱',
+            'SPYM매수':'SPYM 매수','입금':'현금 입금','전량탈출':'전량 탈출'};
+  t.innerHTML='<tr><th>날짜</th><th>구분</th><th>단가/금액</th><th>수량</th><th></th></tr>'+
+    L.map((r,i)=>`<tr><td>${r.d}</td><td><span class="tag">${nm[r.t]||r.t}</span></td><td>$${n2(r.px)}</td><td>${r.q?(+r.q).toLocaleString():'—'}</td>
+      <td><button style="padding:3px 8px;font-size:11px" onclick="delLog(${i})">삭제</button></td></tr>`).join('');
+}
+function dl(name,txt,type){
+  const b=new Blob([txt],{type}); const u=URL.createObjectURL(b);
+  const a=document.createElement('a'); a.href=u; a.download=name; a.click(); URL.revokeObjectURL(u);
+}
+function exportCsv(){
+  const L=logs(); if(!L.length){alert('기록이 없습니다');return;}
+  dl('200sunpi_log.csv','﻿날짜,구분,가격,수량\n'+L.map(r=>[r.d,r.t,r.px,r.q||''].join(',')).join('\n'),'text/csv');
+}
+function exportJson(){ dl('200sunpi_backup.json',JSON.stringify({mode:mode(),pos:manualPos(),logs:logs(),cfg:CFG},null,2),'application/json'); }
+
+/* ===== 설정 ===== */
+const PRESETS={
+  new:{up:0.03, dn:0.03, ts:0.10, tsRef:'SPX',  mode:'multi', tq:67},
+  old:{up:0.025,dn:0.025,ts:0.25, tsRef:'TQQQ', mode:'multi', tq:100}
+};
+function applyCfg(){
+  CFG={up:+document.getElementById('cUp').value/100, dn:+document.getElementById('cDn').value/100,
+       ts:+document.getElementById('cTs').value/100, tsRef:document.getElementById('cRef').value,
+       mode:document.getElementById('cMode').value, tq:+document.getElementById('cTq').value};
+  LS.set('cfg',CFG); render();
+}
+function preset(k){ CFG={...PRESETS[k]}; LS.set('cfg',CFG); loadCfg(); render(); }
+function loadCfg(){
+  CFG={...DEF, ...LS.get('cfg',{})};
+  document.getElementById('cUp').value=(CFG.up*100).toFixed(1);
+  document.getElementById('cDn').value=(CFG.dn*100).toFixed(1);
+  document.getElementById('cTs').value=(CFG.ts*100).toFixed(0);
+  document.getElementById('cRef').value=CFG.tsRef;
+  document.getElementById('cMode').value=CFG.mode;
+  document.getElementById('cTq').value=CFG.tq;
+}
+
+/* ===== 렌더 ===== */
+function render(){
+  const a=analyze();
+  document.getElementById('asof').textContent=`${fd(a.date)} 미국장 종가 기준`;
+  document.getElementById('verBox').innerHTML=
+    `S&amp;P500 200일선<br>±${(CFG.up*100).toFixed(1)}% 기준`;
+  const nb=renderNewbie(a);
+  renderSignal(a); renderBands(a); renderFlow(a); renderChart(); renderPos(a);
+  // 신규 진입자에겐 보유자용 지시와 중복되는 적립 카드를 숨긴다
+  document.getElementById('signal').hidden = nb;
+  document.getElementById('dcaCard').hidden = nb;
+}
+loadCfg(); loadPos(); renderLogs(); onType(); render();
+document.getElementById('lgDate').value=new Date().toISOString().slice(0,10);
+
+/* data.json(15년 전체)이 있으면 교체 후 재렌더 */
+(async()=>{
+  try{
+    const r=await fetch('data.json?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok) return;
+    const j=await r.json();
+    if(!j.rows||!j.rows.length) return;
+    ROWS=j.rows; META=j; FULL=true; render();
+  }catch(e){ /* 로컬 파일로 열었거나 아직 배포 전 — 스냅샷 유지 */ }
+})();
+</script>
+</body>
+</html>
